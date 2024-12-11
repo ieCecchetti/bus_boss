@@ -197,7 +197,7 @@ class _BusDetailsState extends State<BusDetails> {
                     PartecipantListScreen(
                         partecipantList: widget.selectedBus.listPerson
                           ..sort((a, b) => a.isStaff ? -1 : 1),
-                        checkedPartecipantsList: checkedPersonList,
+                        actionList: checkedPersonList,
                         deletePerson: _deletePersonFromBus,
                         togglePersonChecked: toggleCheckPerson),
                   ],
