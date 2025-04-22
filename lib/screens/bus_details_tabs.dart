@@ -1,4 +1,3 @@
-import 'package:bus_resolver/data/mocked_data.dart';
 import 'package:flutter/material.dart';
 import 'package:bus_resolver/models/bus.dart';
 import 'package:bus_resolver/screens/trip_details_screen.dart';
@@ -17,7 +16,9 @@ class BusDetails extends StatefulWidget {
 
 class _BusDetailsState extends State<BusDetails> {
   List<Person> allRegisteredPeople = [];
-  List<Person> checkedPersonList = [];
+  List<Widget> tabViews = [];
+  List<Tab> tabNames = [];
+  List<List<Person>> tabActionList = [];
 
   void _addPersonToBus(Person person) {
     setState(() {
@@ -39,20 +40,55 @@ class _BusDetailsState extends State<BusDetails> {
     );
   }
 
-  void toggleCheckPerson(Person person) {
-    setState(() {
-      if (!checkedPersonList.contains(person)) {
-        checkedPersonList.add(person);
-      } else {
-        checkedPersonList.remove(person);
-      }
-    });
-  }
-
   @override
   void initState() {
     super.initState();
     allRegisteredPeople = widget.selectedBus.listAllSubscribed;
+    tabNames = [const Tab(text: "Details"), const Tab(text: "Partecipants")];
+    tabActionList = [
+      [], // empty
+      [], // partecipants
+    ];
+    tabViews = [
+      TripDetailsScreen(bus: widget.selectedBus),
+      getActionListScreen(1), // partecipants
+    ];
+  }
+
+  void _addNewTab() async {
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        String tempName = "";
+        return AlertDialog(
+          title: const Text("Enter Panel Name"),
+          content: TextField(
+            onChanged: (value) => tempName = value,
+            decoration: const InputDecoration(hintText: "Panel Name"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, tempName),
+              child: const Text("Add"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (newName != null && newName.trim().isNotEmpty) {
+      setState(() {
+        tabNames.add(Tab(text: newName));
+        tabActionList.add([]);
+        tabViews.add(
+          getActionListScreen(tabViews.length),
+        );
+      });
+    }
   }
 
   @override
@@ -73,12 +109,16 @@ class _BusDetailsState extends State<BusDetails> {
               // Add your call action here
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.add_task_sharp),
+            onPressed: _addNewTab,
+          ),
         ],
       ),
       body: CustomScrollView(
         slivers: [
           busDetailsHeader(
-              context, widget.selectedBus, checkedPersonList.length),
+              context, widget.selectedBus, tabActionList[1].length),
           activityTabBar(context, widget.selectedBus),
         ],
       ),
@@ -179,34 +219,44 @@ class _BusDetailsState extends State<BusDetails> {
     final availableHeight = MediaQuery.of(context).size.height - kToolbarHeight;
     return SliverToBoxAdapter(
       child: DefaultTabController(
-        length: 2,
+        length: tabNames.length,
         child: SizedBox(
           height: availableHeight,
           child: Column(
             children: [
-              const TabBar(
-                tabs: [
-                  Tab(text: "Details"),
-                  Tab(text: "Partecipants"),
-                ],
+              TabBar(
+                tabs: tabNames,
               ),
               Flexible(
                 child: TabBarView(
-                  children: [
-                    TripDetailsScreen(bus: selectedBus),
-                    PartecipantListScreen(
-                        partecipantList: widget.selectedBus.listPerson
-                          ..sort((a, b) => a.isStaff ? -1 : 1),
-                        actionList: checkedPersonList,
-                        deletePerson: _deletePersonFromBus,
-                        togglePersonChecked: toggleCheckPerson),
-                  ],
+                  children: tabViews,
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget getActionListScreen(int tabIndex) {
+    final sublist = tabActionList[tabIndex]; // Reference to the sublist
+
+    return PartecipantListScreen(
+      partecipantList: List.from(widget.selectedBus.listPerson)
+        ..sort((a, b) => a.isStaff ? -1 : 1),
+      actionList: sublist,
+      deletePerson: _deletePersonFromBus,
+      togglePersonSelection: (person) {
+        setState(() {
+          if (!sublist.contains(person)) {
+            sublist.add(person); // Directly modify the sublist
+          } else {
+            sublist.remove(person); // Directly modify the sublist
+          }
+          print(sublist); // Updated state of the sublist
+        });
+      },
     );
   }
 }

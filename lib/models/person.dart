@@ -25,4 +25,9 @@ class Person {
       isStaff: json['staff'],
     );
   }
+
+  @override
+  String toString() {
+    return 'Person(code: $code, name: $name, surname: $surname, fiscalCode: $fiscalCode, cellphone: $cellphone, isStaff: $isStaff)';
+  }
 }
